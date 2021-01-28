@@ -69,6 +69,7 @@ async function main() {
       let subject = '[TFJS Test] ' + timestamp + ' - ' + platform + ' - ' + deviceInfo["CPU"]["info"] + ' - ' + deviceInfo.Browser;
       const workloadResults = await runTest.genWorkloadsResults(deviceInfo, args.target, timestamp);
       let endTime = new Date();
+      console.log(JSON.stringify(workloadResults));
       const testReports = await genTestReport(workloadResults, duration(startTime, endTime), timestamp);
 
       if ('email' in args)
