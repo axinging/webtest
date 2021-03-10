@@ -105,7 +105,7 @@ async function runBenchmarks() {
     results[results.length - 1][util.backends.indexOf(backend) + 1] = result;
     console.log(`[${i + 1}/${benchmarksLen}] ${benchmark}: ${result}ms`);
   }
-  await report(results, startTime);
+  return await report(results, startTime);
 }
 
 module.exports = {

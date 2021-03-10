@@ -2,10 +2,12 @@
 
 const { exit } = require('yargs');
 const benchmark = require('./benchmark.js');
+const unittest = require('./unittest.js');
 const config = require('./config.js');
 const fs = require('fs');
 const path = require('path');
 const util = require('./util.js');
+const style = require('./style.js');
 
 util.args = require('yargs')
   .usage('node $0 [args]')
@@ -125,13 +127,19 @@ function parseArgs() {
   if ('run-times' in util.args) {
     util.runTimes = parseInt(util.args['run-times']);
   } else {
-    util.runTimes = 50;
+    util.runTimes = 1;
   }
 
   if ('warmup-times' in util.args) {
     util.warmupTimes = parseInt(util.args['warmup-times']);
   } else {
-    util.warmupTimes = 50;
+    util.warmupTimes = 1;
+  }
+
+  if ('tfjsdir' in util.args) {
+    util.tfjsdir = util.args['tfjsdir'];
+  } else {
+    util.tfjsdir = 'C:/workspace/tfjsdaily/tfjs/tfjs-backend-webgpu';
   }
 
   if ('url' in util.args) {
@@ -141,16 +149,44 @@ function parseArgs() {
   }
 }
 
-async function main() {
-  parseArgs();
-  await config();
-
+// Perf test.
+async function mainBenchmark() {
+  const perfResultTable = [];
   for (let i = 0; i < util.args['repeat']; i++) {
     if (util.args['repeat'] > 1) {
       console.log(`== Test round ${i + 1}/${util.args['repeat']} ==`);
     }
-    await benchmark.runBenchmarks();
+    const perResult= await benchmark.runBenchmarks();
+    perfResultTable.push(perResult);
   }
+  return perfResultTable;
+}
+
+// Unit test.
+async function mainUnittest() {
+  return unittest.runUnittest();
+}
+
+async function main() {
+    parseArgs();
+    await config();
+    await util.sendMail(util.args['email'], util['hostname'], 'After config');
+
+    const unitResultTable =  await mainUnittest();
+    await util.sendMail(util.args['email'], util['hostname'], 'After unittest');
+
+    const perfResultTable =  await mainBenchmark();
+
+    await util.sendMail(util.args['email'], util['hostname'], 'After benchmark');
+
+    const html = style.getStyle() + unitResultTable + "<br><br>" + perfResultTable.join("<br><br>") +"<br><br>" + style.getConfigTable(util);
+
+    if ('email' in util.args) {
+      let startTime = new Date();
+      let timestamp = util.getTimestamp(startTime);
+      let subject = '[TFJS Test] ' + util['hostname'] + ' ' + timestamp;
+      await util.sendMail(util.args['email'], subject, html);
+    }
 }
 
 main();
