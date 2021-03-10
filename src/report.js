@@ -3,17 +3,13 @@
 const fs = require('fs');
 const path = require('path');
 const util = require('./util.js');
+const style = require('./style.js');
 
 async function report(results, startTime) {
   let timestamp = util.getTimestamp(startTime);
 
   // style
-  const htmlStyle = '<style> \
-		* {font-family: Calibri (Body);} \
-	  table {border-collapse: collapse;} \
-	  table, td, th {border: 1px solid black;} \
-	  th {background-color: #0071c5; color: #ffffff; font-weight: normal;} \
-    </style>';
+  const htmlStyle = style.getStyle();
 
   // resultTable
   let resultsTable = '<table><tr><th>Benchmark</th><th>WebGPU (ms)</th><th>WebGL (ms)</th><th>WebGPU vs. WebGL (%)</th><th>WASM (ms)</th><th>WebGPU vs. WASM (%)</th><th>CPU (ms)</th><th>WebGPU vs. CPU (%)</th></tr>';
@@ -34,23 +30,18 @@ async function report(results, startTime) {
     }
     resultsTable += '</tr>';
   }
-  resultsTable += '</table><br>';
+  resultsTable += '</table>';
 
   // configTable
   util['duration'] = util.getDuration(startTime, new Date());
-  let configTable = '<table><tr><th>Category</th><th>Info</th></tr>';
-  for (let category of ['duration', 'hostname', 'platform', 'url', 'browserPath', 'browserArgs', 'cpuName', 'gpuName', 'powerPlan', 'gpuDriverVersion', 'screenResolution', 'chromeVersion', 'chromeRevision']) {
-    configTable += `<tr><td>${category}</td><td>${util[category]}</td></tr>`;
-  }
-  configTable += '</table>'
+  const configTable = style.getConfigTable(util);
+  const durationTable = style.getDurationTable(util['duration'] );
 
-  const html = htmlStyle + resultsTable + configTable;
+  const html = htmlStyle + resultsTable + configTable + durationTable;
   await fs.promises.writeFile(path.join(util.resultsDir, `${timestamp}.html`), html);
 
-  if ('email' in util.args) {
-    let subject = '[TFJS Test] ' + util['hostname'] + ' ' + timestamp;
-    await util.sendMail(util.args['email'], subject, html);
-  }
+  const summary = resultsTable + durationTable;
+  return summary;
 }
 
 module.exports = report;

@@ -84,6 +84,24 @@ function padZero(str) {
   return ('0' + str).slice(-2);
 }
 
+async function waitForCondition(condition) {
+  return new Promise(resolve => {
+    var start_time = Date.now();
+    function checkCondition() {
+      if (condition.logEnd == true) {
+        console.log('yarn test, start karma server end');
+        resolve();
+      } else if (Date.now() > start_time + 3600 * 1000) {
+        console.log('yarn test, start karma server , time out');
+        resolve();
+      } else {
+        setTimeout(checkCondition, 1000);
+      }
+    }
+    checkCondition();
+  });
+}
+
 module.exports = {
   'browserPath': browserPath,
   'browserArgs': ['--enable-unsafe-webgpu', '--enable-dawn-features=disable_robustness', '--enable-features=WebAssemblySimd,WebAssemblyThreads', '--start-maximized'],
@@ -99,5 +117,6 @@ module.exports = {
 
   getDuration: getDuration,
   getTimestamp: getTimestamp,
+  waitForCondition: waitForCondition,
   sendMail: sendMail,
 };
