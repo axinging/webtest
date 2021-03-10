@@ -34,23 +34,21 @@ async function report(results, startTime) {
     }
     resultsTable += '</tr>';
   }
-  resultsTable += '</table><br>';
+  resultsTable += '</table>';
 
   // configTable
   util['duration'] = util.getDuration(startTime, new Date());
-  let configTable = '<table><tr><th>Category</th><th>Info</th></tr>';
+  let configTable = '<br><table><tr><th>Category</th><th>Info</th></tr>';
   for (let category of ['duration', 'hostname', 'platform', 'url', 'browserPath', 'browserArgs', 'cpuName', 'gpuName', 'powerPlan', 'gpuDriverVersion', 'screenResolution', 'chromeVersion', 'chromeRevision']) {
     configTable += `<tr><td>${category}</td><td>${util[category]}</td></tr>`;
   }
-  configTable += '</table>'
+  configTable += '</table>';
 
   const html = htmlStyle + resultsTable + configTable;
   await fs.promises.writeFile(path.join(util.resultsDir, `${timestamp}.html`), html);
 
-  if ('email' in util.args) {
-    let subject = '[TFJS Test] ' + util['hostname'] + ' ' + timestamp;
-    await util.sendMail(util.args['email'], subject, html);
-  }
+  const summary = resultsTable + `<table><tr><td>duration</td><td>${util['duration']}</td></tr></table>`;
+  return summary;
 }
 
 module.exports = report;

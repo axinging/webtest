@@ -2,7 +2,7 @@
 
 const { exit } = require('yargs');
 const benchmark = require('./benchmark.js');
-const benchmarkConsole = require('./benchmarkConsole.js');
+const benchmarkConsole = require('./benchmark_console.js');
 const config = require('./config.js');
 const fs = require('fs');
 const path = require('path');
@@ -126,13 +126,13 @@ function parseArgs() {
   if ('run-times' in util.args) {
     util.runTimes = parseInt(util.args['run-times']);
   } else {
-    util.runTimes = 50;
+    util.runTimes = 1;
   }
 
   if ('warmup-times' in util.args) {
     util.warmupTimes = parseInt(util.args['warmup-times']);
   } else {
-    util.warmupTimes = 50;
+    util.warmupTimes = 1;
   }
 
   if ('url' in util.args) {
@@ -145,14 +145,47 @@ function parseArgs() {
 async function main() {
   parseArgs();
   await config();
+  // style
+  const htmlStyle = '<style> \
+		* {font-family: Calibri (Body);} \
+	  table {border-collapse: collapse;} \
+	  table, td, th {border: 1px solid black;} \
+	  th {background-color: #0071c5; color: #ffffff; font-weight: normal;} \
+    </style>';
 
-  await benchmarkconsole.runBenchmarkConsole("http://localhost:9876/debug.html");
+  let unittestURL = "http://localhost:9876/debug.html";
+  var  unitResultTable = await benchmarkConsole.runBenchmarks(unittestURL);
+  if (unitResultTable === null) {
+    unitResultTable = `<p style="color:#FF0000";>yarn test failed due to + ${unittestURL} + timeout.</p>`;
+  }
+
+  const perfResultTable = [];
 
   for (let i = 0; i < util.args['repeat']; i++) {
     if (util.args['repeat'] > 1) {
       console.log(`== Test round ${i + 1}/${util.args['repeat']} ==`);
     }
-    await benchmark.runBenchmarks();
+    const perResult= await benchmark.runBenchmarks();
+    perfResultTable.push(perResult)
+  }
+
+  let configTable = '<table><tr><th>Category</th><th>Info</th></tr>';
+  for (let category
+           of ['hostname', 'platform', 'url', 'browserPath',
+               'browserArgs', 'cpuName', 'gpuName', 'powerPlan',
+               'gpuDriverVersion', 'screenResolution', 'chromeVersion',
+               'chromeRevision']) {
+    configTable += `<tr><td>${category}</td><td>${util[category]}</td></tr>`;
+  }
+  configTable += '</table>';
+
+  const html = htmlStyle + unitResultTable + "<br><br>" + perfResultTable.join("<br><br>") +"<br><br>" + configTable;
+
+  if ('email' in util.args) {
+    let startTime = new Date();
+    let timestamp = util.getTimestamp(startTime);
+    let subject = '[TFJS Test] ' + util['hostname'] + ' ' + timestamp;
+    await util.sendMail(util.args['email'], subject, html);
   }
 }
 
