@@ -15,6 +15,25 @@ function getUrl(i) {
   return fullUrl;
 }
 
+async function queryTable(page, selector) {
+  let index = 1;
+  let result = '-1 ms';
+  while (true) {
+    const typeElem = await page.$('#timings > tbody > tr:nth-child(' + index + ') > td:nth-child(1)');
+    if (typeElem == null) {
+      break;
+    }
+    const type = await typeElem.evaluate(element => element.textContent);
+    if (type.includes(selector)) {
+      const valueElem = await page.$('#timings > tbody > tr:nth-child(' + index + ') > td:nth-child(2)');
+      result = await valueElem.evaluate(element => element.textContent);
+      break;
+    }
+    index += 1;
+  }
+  return result;
+}
+
 async function runBenchmark(i) {
   if (util.dryrun) {
     return Promise.resolve(0.1);
@@ -43,25 +62,13 @@ async function runBenchmark(i) {
     return Promise.resolve(-1);
   }
 
-  let index = 1;
-  let result = '-1 ms';
-  while (true) {
-    const typeElem = await page.$('#timings > tbody > tr:nth-child(' + index + ') > td:nth-child(1)');
-    if (typeElem == null) {
-      break;
-    }
-    const type = await typeElem.evaluate(element => element.textContent);
-    if (type.includes('average')) {
-      const valueElem = await page.$('#timings > tbody > tr:nth-child(' + index + ') > td:nth-child(2)');
-      result = await valueElem.evaluate(element => element.textContent);
-      break;
-    }
-    index += 1;
-  }
+  let resultAverage = await queryTable(page, 'average');
+  let resultWarmup = await queryTable(page, 'Warmup time');
+  let resultBest = await queryTable(page, 'Best time');
 
   await context.close();
-  result = parseFloat(result.replace(' ms', ''));
-  return Promise.resolve(result);
+  resultAverage = parseFloat(resultAverage.replace(' ms', ''));
+  return [resultAverage, resultBest, resultWarmup];
 }
 
 async function runBenchmarks() {
@@ -90,6 +97,8 @@ async function runBenchmarks() {
 
   let previousTestName = '';
   let results = [];
+  let resultsBest = [];
+  let resultsWarmup = [];
   for (let i = 0; i < benchmarksLen; i++) {
     if (indexes.indexOf(i) < 0) {
       continue;
@@ -99,13 +108,18 @@ async function runBenchmarks() {
     let backend = benchmark[benchmark.length - 1];
     if (testName != previousTestName) {
       results.push([testName].concat(Array(util.backends.length).fill(0)));
+      resultsBest.push([testName].concat(Array(util.backends.length).fill(0)));
+      resultsWarmup.push([testName].concat(Array(util.backends.length).fill(0)));
       previousTestName = testName;
     }
-    let result = await runBenchmark(i);
+    let [result, resultBest, resultWarmup] = await runBenchmark(i);
+    // TODO: move these into array.
     results[results.length - 1][util.backends.indexOf(backend) + 1] = result;
+    resultsBest[resultsBest.length - 1][util.backends.indexOf(backend) + 1] = resultBest;
+    resultsWarmup[resultsWarmup.length - 1][util.backends.indexOf(backend) + 1] = resultWarmup;
     console.log(`[${i + 1}/${benchmarksLen}] ${benchmark}: ${result}ms`);
   }
-  await report(results, startTime);
+  return await report(results, resultsBest, resultsWarmup, startTime);
 }
 
 module.exports = {
