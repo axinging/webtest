@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const { chromium } = require('playwright');
-const report = require('./report.js')
+const reportCorrectness = require('./report_correctness.js')
 const util = require('./util.js')
 
 function getUrl(i) {
@@ -49,29 +49,19 @@ async function runBenchmark(i) {
   const page = await context.newPage();
   await page.goto(getUrl(i));
 
-  //await page.evaluate(async () => {
-  //  const runButton = document.querySelector('#gui > ul > li:nth-child(5) > div > span');
-  //  runButton.click();
-  //  await new Promise(resolve => setTimeout(resolve, util.timeout));
-  //});
-
   try {
-    await page.waitForSelector('#timings > tbody > tr:nth-child(8) > td:nth-child(2)', { timeout: util.timeout });
+    await page.waitForSelector('#timings > tbody > tr:nth-child(2) > td:nth-child(2)', { timeout: util.timeout });
   } catch (err) {
     await context.close();
     return Promise.resolve(-1);
   }
 
-  let resultAverage = await queryTable(page, 'average');
-  let resultWarmup = await queryTable(page, 'Warmup time');
-  let resultBest = await queryTable(page, 'Best time');
-
+  let resultAverage = await queryTable(page, 'Prediction matches CPU');
   await context.close();
-  resultAverage = parseFloat(resultAverage.replace(' ms', ''));
-  return [resultAverage, resultBest, resultWarmup];
+  return resultAverage;
 }
 
-async function runBenchmarks() {
+async function runCorrectness() {
   let startTime = new Date();
   let benchmarksLen = util.benchmarks.length;
   let target = util.args.target;
@@ -108,20 +98,16 @@ async function runBenchmarks() {
     let backend = benchmark[benchmark.length - 1];
     if (testName != previousTestName) {
       results.push([testName].concat(Array(util.backends.length).fill(0)));
-      resultsBest.push([testName].concat(Array(util.backends.length).fill(0)));
-      resultsWarmup.push([testName].concat(Array(util.backends.length).fill(0)));
       previousTestName = testName;
     }
-    let [result, resultBest, resultWarmup] = await runBenchmark(i);
+    let result = await runBenchmark(i);
     // TODO: move these into array.
     results[results.length - 1][util.backends.indexOf(backend) + 1] = result;
-    resultsBest[resultsBest.length - 1][util.backends.indexOf(backend) + 1] = resultBest;
-    resultsWarmup[resultsWarmup.length - 1][util.backends.indexOf(backend) + 1] = resultWarmup;
     console.log(`[${i + 1}/${benchmarksLen}] ${benchmark}: ${result}ms`);
   }
-  return await report(results, resultsBest, resultsWarmup, startTime);
+  return await reportCorrectness(results, startTime);
 }
 
 module.exports = {
-  runBenchmarks: runBenchmarks
+  runCorrectness: runCorrectness
 }

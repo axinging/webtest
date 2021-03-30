@@ -3,6 +3,7 @@
 const { exit } = require('yargs');
 const benchmark = require('./benchmark.js');
 const unittest = require('./unittest.js');
+const correctness = require('./correctness.js');
 const config = require('./config.js');
 const fs = require('fs');
 const path = require('path');
@@ -167,15 +168,31 @@ async function mainUnittest() {
   return unittest.runUnittest();
 }
 
+// Correctness test.
+async function mainCorrectness() {
+  const perfResultTable = [];
+  for (let i = 0; i < util.args['repeat']; i++) {
+    if (util.args['repeat'] > 1) {
+      console.log(`== Test round ${i + 1}/${util.args['repeat']} ==`);
+    }
+    const perResult= await correctness.runCorrectness();
+    perfResultTable.push(perResult);
+  }
+  return perfResultTable;
+}
+
 async function main() {
     parseArgs();
     await config();
 
-    const unitResultTable =  await mainUnittest();
+    const unitResultTable =  '';//await mainUnittest();
 
-    const perfResultTable =  await mainBenchmark();
+    const correctResult = await mainCorrectness();
+    console.log(correctResult);
 
-    const html = style.getStyle() + unitResultTable + "<br><br>" + perfResultTable.join("<br><br>") +"<br><br>" + style.getConfigTable(util);
+    const perfResultTable = []; //await mainBenchmark();
+
+    const html = style.getStyle() + unitResultTable + "<br><br>" + correctResult.join("<br><br>") +"<br><br>" + style.getConfigTable(util);
 
     if ('email' in util.args) {
       let startTime = new Date();
