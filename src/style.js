@@ -1,5 +1,7 @@
 'use strict';
 
+const { chromium } = require('playwright');
+
 function getConfigTable(util) {
   let configTable = '<table><tr><th>Category</th><th>Info</th></tr>';
   for (let category
@@ -27,7 +29,77 @@ function getDurationTable(duration) {
   return `<table><tr><td>duration</td><td>${duration}</td></tr></table>`;
 }
 
-async function queryTable(page, expectedType, timeout) {
+async function gotoURL(url, util, index) {
+  const context = await chromium.launchPersistentContext(util.userDataDir, {
+    headless: false,
+    executablePath: util['browserPath'],
+    viewport: null,
+    ignoreHTTPSErrors: true,
+    args: util['browserArgs'],
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto(url);
+  }
+  catch (error) {
+    console.error("Failed call goto!");
+    context.close();
+    return [-1, -1];
+  }
+
+  try {
+    await page.waitForSelector(`#timings > tbody > tr:nth-child(${index}) > td:nth-child(2)`, { timeout: util.timeout });
+  } catch (err) {
+    await context.close();
+    console.error("Result not ready!");
+    return [-1, -1];
+  }
+  return [context, page];
+}
+
+async function queryTable(page, selector) {
+  let index = 1;
+  let result = '-1 ms';
+  while (true) {
+    const typeElem = await page.$('#timings > tbody > tr:nth-child(' + index + ') > td:nth-child(1)');
+    if (typeElem == null) {
+      break;
+    }
+    const type = await typeElem.evaluate(element => element.textContent);
+    if (type.includes(selector)) {
+      const valueElem = await page.$('#timings > tbody > tr:nth-child(' + index + ') > td:nth-child(2)');
+      result = await valueElem.evaluate(element => element.textContent);
+      break;
+    }
+    index += 1;
+  }
+  console.log(" queryTable =" + result);
+  return result;
+}
+
+// TODO.
+async function gotoURL2(url, util, index) {
+  const context = await chromium.launchPersistentContext(util.userDataDir, {
+    headless: false,
+    executablePath: util['browserPath'],
+    viewport: null,
+    ignoreHTTPSErrors: true,
+    args: util['browserArgs'],
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto(url);
+  }
+  catch (error) {
+    console.error("Failed call goto!");
+    context.close();
+    return [-1, -1];
+  }
+
+  return [context, page];
+}
+
+async function queryTable2(page, expectedType, timeout) {
   let index = 1;
   let result = -1;
   while (true) {
@@ -51,5 +123,6 @@ module.exports = {
   getConfigTable: getConfigTable,
   getStyle: getStyle,
   getDurationTable: getDurationTable,
+  gotoURL: gotoURL,
   queryTable: queryTable,
 };

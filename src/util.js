@@ -1,7 +1,6 @@
 'use strict';
 
 const fs = require('fs');
-const { chromium } = require('playwright');
 const nodemailer = require("nodemailer");
 const os = require('os');
 const path = require('path');
@@ -39,27 +38,6 @@ if (platform === 'darwin') {
 } else {
   console.error('Unsupported Platform');
   exit(1);
-}
-
-async function gotoURL(url) {
-  const util = this;
-  const context = await chromium.launchPersistentContext(util.userDataDir, {
-    headless: false,
-    executablePath: util['browserPath'],
-    viewport: null,
-    ignoreHTTPSErrors: true,
-    args: util['browserArgs'],
-  });
-  const page = await context.newPage();
-  try {
-    await page.goto(url);
-  }
-  catch (error) {
-    console.log(error);
-    context.close();
-    return [-1, -1];
-  }
-  return [context, page];
 }
 
 function getDuration(start, end) {
@@ -121,6 +99,5 @@ module.exports = {
 
   getDuration: getDuration,
   getTimestamp: getTimestamp,
-  gotoURL: gotoURL,
   sendMail: sendMail,
 };

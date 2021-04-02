@@ -20,7 +20,7 @@ async function runBenchmark(i) {
         return Promise.resolve(0.1);
     }
 
-    const [context, page] = await util.gotoURL(getUrl(i));
+    const [context, page] = await style.gotoURL(getUrl(i), util, 2);
     if (context == -1) {
         return -1;
     }
