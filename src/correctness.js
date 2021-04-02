@@ -25,7 +25,7 @@ async function runBenchmark(i) {
         return -1;
     }
 
-    let resultAverage = await style.queryTable(page, 'Prediction matches CPU');
+    let resultAverage = await style.queryTable(page, 'Prediction matches CPU', util.timeout);
     await context.close();
     return resultAverage;
 }

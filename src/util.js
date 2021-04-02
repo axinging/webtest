@@ -51,7 +51,14 @@ async function gotoURL(url) {
     args: util['browserArgs'],
   });
   const page = await context.newPage();
-  await page.goto(url);
+  try {
+    await page.goto(url);
+  }
+  catch (error) {
+    console.log(error);
+    context.close();
+    return [-1, -1];
+  }
   return [context, page];
 }
 
