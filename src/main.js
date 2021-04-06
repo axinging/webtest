@@ -144,7 +144,8 @@ function parseArgs() {
   if ('url' in util.args) {
     util.url = util.args['url'];
   } else {
-    util.url = 'http://wp-27.sh.intel.com/workspace/project/tfjswebgpu/tfjs/e2e/benchmarks/local-benchmark/';
+    util.url ='http://10.239.47.115:8080/tfjs/e2e/benchmarks/local-benchmark/';
+    //util.url = 'http://wp-27.sh.intel.com/workspace/project/tfjswebgpu/tfjs/e2e/benchmarks/local-benchmark/';
   }
 }
 

@@ -77,12 +77,8 @@ async function run(selectorValues, task) {
       previousTestName = testName;
     }
     let result = await runBenchmark(i, selectorValues, task);
-    if (result == null) {
-      // TODO: handle null.
-      return null;
-    }
     selectorValues.forEach(function (selectorValue) {
-      results[selectorValue][results[selectorValue].length - 1][util.backends.indexOf(backend) + 1] = result[selectorValue];
+      results[selectorValue][results[selectorValue].length - 1][util.backends.indexOf(backend) + 1] = result != null ? result[selectorValue] : -1;
     });
     console.log(`[${i + 1}/${benchmarksLen}] ${benchmark}: ${result[selectorValues[0]]}ms`);
   }
